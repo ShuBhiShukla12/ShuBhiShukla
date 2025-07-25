@@ -1,0 +1,3 @@
+whoami             # Shows your username
+cd ~/Desktop       # Goes to Desktop folder
+mkdir test-folder  # Creates a new folder
