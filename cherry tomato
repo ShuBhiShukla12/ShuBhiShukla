@@ -1,5 +1,582 @@
 whoami             # Shows your username
 cd ~/Desktop       # Goes to Desktop folder
 mkdir test-folder  # Creates a new folder
+import React, { useState, useEffect, useRef } from 'react';
+import styled, { keyframes, css } from 'styled-components';
+
+// Animation keyframes
+const float = keyframes`
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+`;
+
+const fall = keyframes`
+  0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+`;
+
+const fadeIn = keyframes`
+  from { opacity: 0; }
+  to { opacity: 1; }
+`;
+
+// Styled components
+const AppContainer = styled.div`
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  color: #f0e6e6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #1a1a2e;
+`;
+
+const BackgroundAnimation = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('https://preview.redd.it/uu3aeh632mlb1.gif?width=482&format=mp4&s=8ca6733b19a579346de73b5424429bcaacba0445') center/cover no-repeat;
+  opacity: 0.7;
+  z-index: 0;
+`;
+
+const Overlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(26, 26, 46, 0.85);
+  z-index: 1;
+`;
+
+const Content = styled.div`
+  position: relative;
+  z-index: 2;
+  width: 90%;
+  max-width: 500px;
+  backdrop-filter: blur(10px);
+  background: rgba(40, 40, 60, 0.6);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  animation: ${fadeIn} 1s ease-out;
+`;
+
+const TimerContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  border-radius: 15px;
+  background: rgba(50, 50, 70, 0.4);
+  backdrop-filter: blur(5px);
+  margin-bottom: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+`;
+
+const TimerDisplay = styled.div`
+  font-size: 5rem;
+  font-weight: 300;
+  margin: 1rem 0;
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  text-shadow: 0 0 10px rgba(255, 182, 193, 0.5);
+`;
+
+const ModeText = styled.div`
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: #f8bbd0;
+  text-transform: capitalize;
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin: 1rem 0;
+`;
+
+const Button = styled.button`
+  padding: 0.5rem 1.5rem;
+  border: none;
+  border-radius: 50px;
+  background: ${props => props.primary ? 'rgba(216, 112, 147, 0.7)' : 'rgba(100, 100, 120, 0.5)'};
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  
+  &:hover {
+    background: ${props => props.primary ? 'rgba(216, 112, 147, 0.9)' : 'rgba(120, 120, 140, 0.7)'};
+    transform: translateY(-2px);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+`;
+
+const BlossomContainer = styled.div`
+  position: relative;
+  width: 100%;
+  height: 150px;
+  display: flex;
+  justify-content: center;
+  margin: 1rem 0;
+`;
+
+const TreeContainer = styled.div`
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const TreeTrunk = styled.div`
+  width: 20px;
+  height: 60px;
+  background: linear-gradient(to right, #5d4037, #8d6e63);
+  border-radius: 5px;
+`;
+
+const TreeTop = styled.div`
+  position: relative;
+  width: 120px;
+  height: 100px;
+  margin-bottom: 10px;
+`;
+
+const Blossom = styled.div`
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: ${props => props.color || '#f8bbd0'};
+  opacity: ${props => props.opacity || 0.8};
+  animation: ${float} 3s infinite ease-in-out;
+  animation-delay: ${props => props.delay || '0s'};
+`;
+
+const FallingBlossom = styled.div`
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background-color: #f8bbd0;
+  border-radius: 50%;
+  top: -10px;
+  left: ${props => props.left}px;
+  animation: ${fall} ${props => props.duration || '5s'} linear infinite;
+  opacity: ${props => props.opacity || 0.7};
+  animation-delay: ${props => props.delay || '0s'};
+`;
+
+const ProgressSection = styled.div`
+  background: rgba(50, 50, 70, 0.4);
+  backdrop-filter: blur(5px);
+  padding: 1.5rem;
+  border-radius: 15px;
+  margin-top: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+`;
+
+const ProgressTitle = styled.h3`
+  margin: 0 0 1rem 0;
+  color: #f8bbd0;
+  font-weight: 400;
+  text-align: center;
+  font-size: 1.2rem;
+`;
+
+const ProgressBars = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 1rem;
+`;
+
+const ProgressBar = styled.div`
+  height: ${props => props.height || '40px'};
+  width: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  overflow: hidden;
+  position: relative;
+`;
+
+const ProgressFill = styled.div`
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(to top, #f06292, #f8bbd0);
+  border-radius: 5px;
+  transform-origin: bottom;
+  transform: scaleY(${props => props.fill || 0});
+  transition: transform 0.5s ease-out;
+`;
+
+const SettingsContainer = styled.div`
+  margin-top: 1.5rem;
+  background: rgba(50, 50, 70, 0.4);
+  backdrop-filter: blur(5px);
+  padding: 1.5rem;
+  border-radius: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+`;
+
+const SettingRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+`;
+
+const SettingLabel = styled.label`
+  color: #f0e6e6;
+  font-size: 0.9rem;
+`;
+
+const SettingInput = styled.input`
+  width: 60px;
+  padding: 0.3rem;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(30, 30, 40, 0.8);
+  color: white;
+  text-align: center;
+`;
+
+const CherryTomatoApp = () => {
+  // Timer states
+  const [mode, setMode] = useState('focus'); // focus, shortBreak, longBreak
+  const [timeLeft, setTimeLeft] = useState(25 * 60);
+  const [isActive, setIsActive] = useState(false);
+  const [sessionCount, setSessionCount] = useState(0);
+  const [totalSessions, setTotalSessions] = useState(0);
+  const [showSettings, setShowSettings] = useState(false);
+  
+  // Settings
+  const [focusTime, setFocusTime] = useState(25);
+  const [shortBreakTime, setShortBreakTime] = useState(5);
+  const [longBreakTime, setLongBreakTime] = useState(15);
+  const [sessionsBeforeLongBreak, setSessionsBeforeLongBreak] = useState(4);
+  
+  // Blossom states
+  const [blossoms, setBlossoms] = useState([]);
+  const [showBlossomShower, setShowBlossomShower] = useState(false);
+  const [dailyProgress, setDailyProgress] = useState(0);
+  
+  // Refs
+  const timerRef = useRef(null);
+  const blossomTimeoutRef = useRef(null);
+  
+  // Initialize timer based on mode
+  useEffect(() => {
+    if (mode === 'focus') {
+      setTimeLeft(focusTime * 60);
+    } else if (mode === 'shortBreak') {
+      setTimeLeft(shortBreakTime * 60);
+    } else if (mode === 'longBreak') {
+      setTimeLeft(longBreakTime * 60);
+    }
+    setIsActive(false);
+  }, [mode, focusTime, shortBreakTime, longBreakTime]);
+  
+  // Timer logic
+  useEffect(() => {
+    if (isActive && timeLeft > 0) {
+      timerRef.current = setTimeout(() => {
+        setTimeLeft(timeLeft - 1);
+      }, 1000);
+    } else if (isActive && timeLeft === 0) {
+      // Timer completed
+      setIsActive(false);
+      
+      if (mode === 'focus') {
+        const newSessionCount = sessionCount + 1;
+        setSessionCount(newSessionCount);
+        setTotalSessions(totalSessions + 1);
+        setDailyProgress(Math.min(dailyProgress + 1, 8));
+        
+        // Show blossom shower
+        setShowBlossomShower(true);
+        if (blossomTimeoutRef.current) {
+          clearTimeout(blossomTimeoutRef.current);
+        }
+        blossomTimeoutRef.current = setTimeout(() => {
+          setShowBlossomShower(false);
+        }, 3000);
+        
+        if (newSessionCount % sessionsBeforeLongBreak === 0) {
+          setMode('longBreak');
+        } else {
+          setMode('shortBreak');
+        }
+      } else {
+        setMode('focus');
+      }
+    }
+    
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, [isActive, timeLeft, mode, sessionCount, totalSessions, sessionsBeforeLongBreak, dailyProgress]);
+  
+  // Generate blossoms for the tree
+  useEffect(() => {
+    const newBlossoms = [];
+    const blossomCount = 50;
+    const intensity = dailyProgress / 8; // 0 to 1
+    
+    for (let i = 0; i < blossomCount; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const distance = 30 + Math.random() * 30;
+      const x = 60 + Math.cos(angle) * distance;
+      const y = 50 + Math.sin(angle) * distance;
+      
+      // Calculate color based on intensity
+      const hue = 330 + Math.random() * 30; // Pink to magenta range
+      const saturation = 70 + intensity * 30; // 70% to 100%
+      const lightness = 80 - intensity * 30; // 80% to 50%
+      const color = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+      
+      newBlossoms.push({
+        id: i,
+        x,
+        y,
+        color,
+        opacity: 0.7 + Math.random() * 0.3,
+        delay: `${Math.random() * 2}s`,
+        size: 3 + Math.random() * 3
+      });
+    }
+    
+    setBlossoms(newBlossoms);
+  }, [dailyProgress]);
+  
+  // Format time as MM:SS
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+  
+  // Toggle timer
+  const toggleTimer = () => {
+    setIsActive(!isActive);
+  };
+  
+  // Reset timer
+  const resetTimer = () => {
+    setIsActive(false);
+    if (mode === 'focus') {
+      setTimeLeft(focusTime * 60);
+    } else if (mode === 'shortBreak') {
+      setTimeLeft(shortBreakTime * 60);
+    } else if (mode === 'longBreak') {
+      setTimeLeft(longBreakTime * 60);
+    }
+  };
+  
+  // Skip to next mode
+  const skipToNext = () => {
+    setIsActive(false);
+    if (mode === 'focus') {
+      setMode('shortBreak');
+    } else {
+      setMode('focus');
+    }
+  };
+  
+  // Apply settings
+  const applySettings = () => {
+    setShowSettings(false);
+    if (mode === 'focus') {
+      setTimeLeft(focusTime * 60);
+    } else if (mode === 'shortBreak') {
+      setTimeLeft(shortBreakTime * 60);
+    } else if (mode === 'longBreak') {
+      setTimeLeft(longBreakTime * 60);
+    }
+    setIsActive(false);
+  };
+  
+  // Generate falling blossoms for the shower
+  const generateFallingBlossoms = () => {
+    const blossoms = [];
+    const count = 20;
+    
+    for (let i = 0; i < count; i++) {
+      blossoms.push({
+        id: i,
+        left: Math.random() * 100,
+        duration: `${3 + Math.random() * 4}s`,
+        opacity: 0.5 + Math.random() * 0.5,
+        delay: `${Math.random() * 2}s`
+      });
+    }
+    
+    return blossoms;
+  };
+  
+  return (
+    <AppContainer>
+      <BackgroundAnimation />
+      <Overlay />
+      
+      <Content>
+        {/* Tribute Section */}
+        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+          <h2 style={{ color: '#f8bbd0', fontWeight: '300', marginBottom: '0.5rem' }}>Cherry Tomato</h2>
+          <p style={{ fontSize: '0.9rem', opacity: 0.8 }}>In loving memory of Marinara 🍅</p>
+        </div>
+        
+        {/* Timer Section */}
+        <TimerContainer>
+          <ModeText>{mode === 'focus' ? 'Focus Time' : mode === 'shortBreak' ? 'Short Break' : 'Long Break'}</ModeText>
+          <TimerDisplay>{formatTime(timeLeft)}</TimerDisplay>
+          
+          <ButtonGroup>
+            <Button primary onClick={toggleTimer}>
+              {isActive ? 'Pause' : 'Start'}
+            </Button>
+            <Button onClick={resetTimer}>Reset</Button>
+            <Button onClick={skipToNext}>Skip</Button>
+          </ButtonGroup>
+        </TimerContainer>
+        
+        {/* Cherry Blossom Tree */}
+        <BlossomContainer>
+          <TreeContainer>
+            <TreeTop>
+              {blossoms.map(blossom => (
+                <Blossom
+                  key={blossom.id}
+                  color={blossom.color}
+                  opacity={blossom.opacity}
+                  delay={blossom.delay}
+                  style={{
+                    left: `${blossom.x}px`,
+                    top: `${blossom.y}px`,
+                    width: `${blossom.size}px`,
+                    height: `${blossom.size}px`
+                  }}
+                />
+              ))}
+            </TreeTop>
+            <TreeTrunk />
+          </TreeContainer>
+          
+          {/* Falling Blossoms */}
+          {showBlossomShower && generateFallingBlossoms().map(blossom => (
+            <FallingBlossom
+              key={blossom.id}
+              left={blossom.left}
+              duration={blossom.duration}
+              opacity={blossom.opacity}
+              delay={blossom.delay}
+            />
+          ))}
+        </BlossomContainer>
+        
+        {/* Progress Section */}
+        <ProgressSection>
+          <ProgressTitle>Today's Blossoms</ProgressTitle>
+          <ProgressBars>
+            {Array.from({ length: 8 }).map((_, i) => (
+              <ProgressBar key={i} height="30px">
+                <ProgressFill fill={i < dailyProgress ? 1 : 0.05} />
+              </ProgressBar>
+            ))}
+          </ProgressBars>
+        </ProgressSection>
+        
+        {/* Settings Button */}
+        <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+          <Button onClick={() => setShowSettings(!showSettings)}>
+            {showSettings ? 'Hide Settings' : 'Settings'}
+          </Button>
+        </div>
+        
+        {/* Settings Section */}
+        {showSettings && (
+          <SettingsContainer>
+            <h3 style={{ color: '#f8bbd0', fontWeight: '400', marginTop: '0', textAlign: 'center' }}>Timer Settings</h3>
+            
+            <SettingRow>
+              <SettingLabel>Focus Time (minutes):</SettingLabel>
+              <SettingInput
+                type="number"
+                min="1"
+                max="60"
+                value={focusTime}
+                onChange={(e) => setFocusTime(parseInt(e.target.value) || 25)}
+              />
+            </SettingRow>
+            
+            <SettingRow>
+              <SettingLabel>Short Break (minutes):</SettingLabel>
+              <SettingInput
+                type="number"
+                min="1"
+                max="15"
+                value={shortBreakTime}
+                onChange={(e) => setShortBreakTime(parseInt(e.target.value) || 5)}
+              />
+            </SettingRow>
+            
+            <SettingRow>
+              <SettingLabel>Long Break (minutes):</SettingLabel>
+              <SettingInput
+                type="number"
+                min="5"
+                max="30"
+                value={longBreakTime}
+                onChange={(e) => setLongBreakTime(parseInt(e.target.value) || 15)}
+              />
+            </SettingRow>
+            
+            <SettingRow>
+              <SettingLabel>Sessions before long break:</SettingLabel>
+              <SettingInput
+                type="number"
+                min="1"
+                max="8"
+                value={sessionsBeforeLongBreak}
+                onChange={(e) => setSessionsBeforeLongBreak(parseInt(e.target.value) || 4)}
+              />
+            </SettingRow>
+            
+            <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+              <Button primary onClick={applySettings}>Apply Settings</Button>
+            </div>
+          </SettingsContainer>
+        )}
+      </Content>
+    </AppContainer>
+  );
+};
+
+export default CherryTomatoApp;
 npm install styled-components react react-dom
 npm install --save-dev @types/react @types/react-dom @types/styled-components
+npm install vite @vitejs/plugin-react --save-dev
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  plugins: [react()],
+});
+npx vite
+npm run build
