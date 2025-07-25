@@ -1,3 +1,5 @@
 whoami             # Shows your username
 cd ~/Desktop       # Goes to Desktop folder
 mkdir test-folder  # Creates a new folder
+npm install styled-components react react-dom
+npm install --save-dev @types/react @types/react-dom @types/styled-components
